@@ -56,26 +56,36 @@
           @input="updateName"
           @blur="setUnEditable"
         />
-        <div class="vtl-operation" v-show="isHover">
+        <div class="vtl-operation">
           <span
-            :title="defaultAddTreeNodeTitle"
-            @click.stop.prevent="addChild(false)"
+            @click.stop.prevent="addChild(false, true)"
             v-if="!model.isLeaf && !model.addTreeNodeDisabled"
           >
-            <slot name="addTreeNodeIcon" :expanded="expanded" :model="model" :root="rootNode">
-              <i class="vtl-icon vtl-icon-folder-plus-e"></i>
+            <slot name="addAnd" :expanded="expanded" :model="model" :root="rootNode">
+              <span>+And</span>
             </slot>
           </span>
           <span
-            :title="defaultAddLeafNodeTitle"
-            @click.stop.prevent="addChild(true)"
-            v-if="!model.isLeaf && !model.addLeafNodeDisabled"
+            @click.stop.prevent="addChild(false, false)"
+            v-if="!model.isLeaf && !model.addTreeNodeDisabled"
           >
-            <slot name="addLeafNodeIcon" :expanded="expanded" :model="model" :root="rootNode">
-              <i class="vtl-icon vtl-icon-plus"></i>
+            <slot name="addOr" :expanded="expanded" :model="model" :root="rootNode">
+              <span>+Or</span>
             </slot>
           </span>
-          <span title="edit" @click.stop.prevent="setEditable" v-if="!model.editNodeDisabled">
+          <span
+            @click.stop.prevent="addChild(true, null)"
+            v-if="!model.isLeaf && !model.addLeafNodeDisabled"
+          >
+            <slot name="addFilter" :expanded="expanded" :model="model" :root="rootNode">
+              <span>+Filter</span>
+            </slot>
+          </span>
+          <span
+            title="edit"
+            @click.stop.prevent="editNode"
+            v-if="model.isLeaf && !model.editNodeDisabled"
+          >
             <slot name="editNodeIcon" :expanded="expanded" :model="model" :root="rootNode">
               <i class="vtl-icon vtl-icon-edit"></i>
             </slot>
@@ -243,6 +253,10 @@ export default {
       this.rootNode.$emit('delete-node', this.model)
     },
 
+    editNode() {
+      this.rootNode.$emit('edit-node', this.model)
+    },
+
     setEditable() {
       this.editable = true
       this.$nextTick(() => {
@@ -286,10 +300,19 @@ export default {
       })
     },
 
-    addChild(isLeaf) {
-      const name = isLeaf ? this.defaultLeafNodeName : this.defaultTreeNodeName
+    addChild(isLeaf, isAnd) {
+      let name = ''
+      if (isLeaf) {
+        name = '(IN PROGRESS)'
+      } else {
+        if (isAnd) {
+          name = 'And'
+        } else {
+          name = 'Or'
+        }
+      }
       this.expanded = true
-      var node = new TreeNode({ name, isLeaf })
+      var node = new TreeNode({ name, isLeaf, editNodeDisabled: true, delNodeDisabled: true })
       this.model.addChildren(node, true)
       this.rootNode.$emit('add-node', node)
     },
@@ -444,6 +467,10 @@ export default {
   content: '\e905';
 }
 
+.vtl-node-content {
+  padding-top: 5px;
+}
+
 .vtl-border {
   height: 5px;
   &.vtl-up {
@@ -462,7 +489,7 @@ export default {
 .vtl-node-main {
   display: flex;
   align-items: center;
-  padding: 5px 0 5px 1rem;
+  padding: 2px 0 2px 1rem;
   .vtl-input {
     border: none;
     max-width: 150px;
@@ -478,8 +505,10 @@ export default {
     margin-left: -1rem;
   }
   .vtl-operation {
-    margin-left: 2rem;
-    letter-spacing: 1px;
+    margin-left: 1rem;
+    span {
+      margin: 0 2px;
+    }
   }
 }
 
